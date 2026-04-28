@@ -2,10 +2,12 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import axios from './axios';
 
-if (typeof window !== 'undefined') {
+let echoInstance = null;
+
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_PUSHER_APP_KEY) {
     window.Pusher = Pusher;
 
-    window.Echo = new Echo({
+    echoInstance = new Echo({
         broadcaster: 'pusher',
         key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
         cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER,
@@ -27,6 +29,8 @@ if (typeof window !== 'undefined') {
             };
         },
     });
+    
+    window.Echo = echoInstance;
 }
 
-export default typeof window !== 'undefined' ? window.Echo : null;
+export default echoInstance;
