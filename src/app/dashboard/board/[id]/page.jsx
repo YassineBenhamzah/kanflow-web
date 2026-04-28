@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import axios from '@/lib/axios';
-import { Plus, ArrowLeft, MoreHorizontal, GripVertical, Calendar, Flag, Loader2 } from 'lucide-react';
+import { Plus, ArrowLeft, MoreHorizontal, GripVertical, Calendar, Flag, Loader2, Trash2, Check, Pencil } from 'lucide-react';
 import TaskDetailModal from '@/components/TaskDetailModal';
 
 const PRIORITY_CONFIG = {
@@ -22,6 +22,10 @@ export default function BoardPage() {
     const [newTaskCol, setNewTaskCol] = useState(null);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [selectedTask, setSelectedTask] = useState(null);
+    const [editingColId, setEditingColId] = useState(null);
+    const [editingColName, setEditingColName] = useState('');
+    const [addingColumn, setAddingColumn] = useState(false);
+    const [newColName, setNewColName] = useState('');
 
 
     // Fetch real board data from API
@@ -92,12 +96,46 @@ export default function BoardPage() {
     })));
 };
 
-const handleTaskDelete = (taskId) => {
-    setColumns(columns.map(col => ({
-        ...col,
-        tasks: col.tasks.filter(t => t.id !== taskId)
-    })));
-};
+    const handleTaskDelete = (taskId) => {
+        setColumns(columns.map(col => ({
+            ...col,
+            tasks: col.tasks.filter(t => t.id !== taskId)
+        })));
+    };
+
+    // Column Management
+    const handleAddColumn = async () => {
+        if (!newColName.trim()) { setAddingColumn(false); return; }
+        try {
+            const response = await axios.post(`/boards/${id}/columns`, { name: newColName });
+            setColumns([...columns, { ...response.data, tasks: [] }]);
+        } catch (error) {
+            console.error('Failed to add column', error);
+        }
+        setNewColName('');
+        setAddingColumn(false);
+    };
+
+    const handleRenameColumn = async (colId) => {
+        if (!editingColName.trim()) { setEditingColId(null); return; }
+        try {
+            await axios.put(`/columns/${colId}`, { name: editingColName });
+            setColumns(columns.map(col => col.id === colId ? { ...col, name: editingColName } : col));
+        } catch (error) {
+            console.error('Failed to rename column', error);
+        }
+        setEditingColId(null);
+    };
+
+    const handleDeleteColumn = async (colId) => {
+        if (!confirm('Delete this column and all its tasks?')) return;
+        try {
+            await axios.delete(`/columns/${colId}`);
+            setColumns(columns.filter(col => col.id !== colId));
+        } catch (error) {
+            console.error('Failed to delete column', error);
+        }
+    };
 
 
     if (loading) {
@@ -132,14 +170,44 @@ const handleTaskDelete = (taskId) => {
                             {/* Column Header */}
                             <div className="flex items-center justify-between mb-3 px-1">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="text-sm font-semibold text-zinc-300">{column.name}</h3>
+                                    {editingColId === column.id ? (
+                                        <div className="flex items-center gap-1">
+                                            <input
+                                                autoFocus
+                                                value={editingColName}
+                                                onChange={(e) => setEditingColName(e.target.value)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') handleRenameColumn(column.id); if (e.key === 'Escape') setEditingColId(null); }}
+                                                className="bg-zinc-800 border border-zinc-700 rounded-lg py-1 px-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-32"
+                                            />
+                                            <button onClick={() => handleRenameColumn(column.id)} className="text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
+                                        </div>
+                                    ) : (
+                                        <h3
+                                            onDoubleClick={() => { setEditingColId(column.id); setEditingColName(column.name); }}
+                                            className="text-sm font-semibold text-zinc-300 cursor-pointer hover:text-white transition-colors"
+                                            title="Double-click to rename"
+                                        >{column.name}</h3>
+                                    )}
                                     <span className="text-xs font-medium text-zinc-600 bg-zinc-800/50 px-2 py-0.5 rounded-full">
                                         {column.tasks.length}
                                     </span>
                                 </div>
-                                <button className="text-zinc-600 hover:text-zinc-300 transition-colors">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => { setEditingColId(column.id); setEditingColName(column.name); }}
+                                        className="text-zinc-600 hover:text-zinc-300 transition-colors"
+                                        title="Rename column"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteColumn(column.id)}
+                                        className="text-zinc-600 hover:text-red-400 transition-colors"
+                                        title="Delete column"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Droppable Task List */}
@@ -221,18 +289,45 @@ const handleTaskDelete = (taskId) => {
                                     </div>
                                 )}
                             </Droppable>
-                            
                         </div>
                     ))}
-                    <TaskDetailModal
-    task={selectedTask}
-    isOpen={!!selectedTask}
-    onClose={() => setSelectedTask(null)}
-    onUpdate={handleTaskUpdate}
-    onDelete={handleTaskDelete}
-/>
+
+                    {/* Add Column Button */}
+                    <div className="w-80 flex-shrink-0">
+                        {addingColumn ? (
+                            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+                                <input
+                                    autoFocus
+                                    value={newColName}
+                                    onChange={(e) => setNewColName(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddColumn(); if (e.key === 'Escape') setAddingColumn(false); }}
+                                    placeholder="Column name..."
+                                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 px-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 mb-2"
+                                />
+                                <div className="flex gap-2">
+                                    <button onClick={handleAddColumn} className="text-xs font-medium bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-1.5 rounded-lg transition-colors">Add Column</button>
+                                    <button onClick={() => setAddingColumn(false)} className="text-xs font-medium text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setAddingColumn(true)}
+                                className="w-full h-12 rounded-xl border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 bg-zinc-900/20 hover:bg-indigo-500/5 flex items-center justify-center gap-2 text-sm text-zinc-600 hover:text-indigo-400 transition-all"
+                            >
+                                <Plus className="w-4 h-4" /> Add Column
+                            </button>
+                        )}
+                    </div>
                 </div>
             </DragDropContext>
+
+            <TaskDetailModal
+                task={selectedTask}
+                isOpen={!!selectedTask}
+                onClose={() => setSelectedTask(null)}
+                onUpdate={handleTaskUpdate}
+                onDelete={handleTaskDelete}
+            />
         </div>
     );
 }
