@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/store/useAuth';
 import axios from '@/lib/axios';
-import { Plus, LayoutTemplate, LogOut, Loader2 } from 'lucide-react';
+import { Plus, LayoutTemplate, Loader2 } from 'lucide-react';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import { useRouter } from 'next/navigation';
 
-
 export default function DashboardPage() {
-    // Look! We grab the user's name directly from our Zustand Global Brain!
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
+    const router = useRouter();
     const [boards, setBoards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -25,22 +24,9 @@ export default function DashboardPage() {
         }
     };
 
-    const router = useRouter();
-    const handleLogout = async () => {
-        try {
-            // Hit the Laravel API to securely destroy the session token
-            await axios.post('/auth/logout');
-            logout(); // Clear the Zustand brain
-            window.location.href = '/login'; // Kick to login screen
-        } catch (error) {
-            console.error('Logout failed', error);
-        }
-    };
-
     useEffect(() => {
         const fetchBoards = async () => {
             try {
-                // Fetch the boards dynamically from the Hostinger backend
                 const response = await axios.get('/boards');
                 setBoards(response.data);
             } catch (error) {
@@ -54,21 +40,12 @@ export default function DashboardPage() {
 
     return (
         <div className="flex-1 w-full p-10 max-w-7xl mx-auto">
-            {/* Top Navigation Profile */}
-            <div className="flex items-center justify-between mb-12">
-                <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">
-                        Welcome back, <span className="text-indigo-400">{user?.name}</span>
-                    </h1>
-                    <p className="text-zinc-400 mt-1">Here is your workspace overview.</p>
-                </div>
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center text-sm font-medium text-zinc-400 hover:text-red-400 transition-colors bg-zinc-900/50 px-4 py-2 rounded-xl border border-zinc-800 hover:border-red-900/50 hover:bg-red-500/10"
-                >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                </button>
+            {/* Header */}
+            <div className="mb-12">
+                <h1 className="text-3xl font-bold text-white tracking-tight">
+                    Welcome back, <span className="text-indigo-400">{user?.name}</span>
+                </h1>
+                <p className="text-zinc-400 mt-1">Here is your workspace overview.</p>
             </div>
 
             {/* Boards Grid */}

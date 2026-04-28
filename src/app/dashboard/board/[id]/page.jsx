@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import axios from '@/lib/axios';
 import { Plus, ArrowLeft, MoreHorizontal, GripVertical, Calendar, Flag, Loader2 } from 'lucide-react';
+import TaskDetailModal from '@/components/TaskDetailModal';
 
 const PRIORITY_CONFIG = {
     high: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'High' },
@@ -20,6 +21,8 @@ export default function BoardPage() {
     const [loading, setLoading] = useState(true);
     const [newTaskCol, setNewTaskCol] = useState(null);
     const [newTaskTitle, setNewTaskTitle] = useState('');
+    const [selectedTask, setSelectedTask] = useState(null);
+
 
     // Fetch real board data from API
     useEffect(() => {
@@ -82,6 +85,20 @@ export default function BoardPage() {
         setNewTaskTitle('');
         setNewTaskCol(null);
     };
+    const handleTaskUpdate = (updatedTask) => {
+    setColumns(columns.map(col => ({
+        ...col,
+        tasks: col.tasks.map(t => t.id === updatedTask.id ? updatedTask : t)
+    })));
+};
+
+const handleTaskDelete = (taskId) => {
+    setColumns(columns.map(col => ({
+        ...col,
+        tasks: col.tasks.filter(t => t.id !== taskId)
+    })));
+};
+
 
     if (loading) {
         return (
@@ -142,6 +159,7 @@ export default function BoardPage() {
                                                         ref={provided.innerRef}
                                                         {...provided.draggableProps}
                                                         {...provided.dragHandleProps}
+                                                        onClick={() => setSelectedTask(task)}
                                                         className={`group bg-zinc-900 border rounded-xl p-3.5 cursor-grab active:cursor-grabbing transition-all ${
                                                             snapshot.isDragging
                                                                 ? 'border-indigo-500/50 shadow-xl shadow-indigo-500/10 rotate-[2deg] scale-105'
@@ -203,8 +221,16 @@ export default function BoardPage() {
                                     </div>
                                 )}
                             </Droppable>
+                            
                         </div>
                     ))}
+                    <TaskDetailModal
+    task={selectedTask}
+    isOpen={!!selectedTask}
+    onClose={() => setSelectedTask(null)}
+    onUpdate={handleTaskUpdate}
+    onDelete={handleTaskDelete}
+/>
                 </div>
             </DragDropContext>
         </div>
