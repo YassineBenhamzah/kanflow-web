@@ -341,6 +341,7 @@ export default function BoardPage() {
                 onClose={() => setSelectedTask(null)}
                 onUpdate={handleTaskUpdate}
                 onDelete={handleTaskDelete}
+                members={board?.members || []}
             />
             <BoardSettingsModal
                 board={board}

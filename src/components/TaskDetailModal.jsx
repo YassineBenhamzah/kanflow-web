@@ -11,11 +11,12 @@ const PRIORITIES = [
     { value: 'high', label: 'High', color: 'bg-red-500/10 text-red-400 border-red-500/20' },
 ];
 
-export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDelete }) {
+export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDelete, members }) {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState('medium');
     const [dueDate, setDueDate] = useState('');
+    const [assignedTo, setAssignedTo] = useState(null);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -24,6 +25,7 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
             setDescription(task.description || '');
             setPriority(task.priority || 'medium');
             setDueDate(task.due_date ? task.due_date.split('T')[0] : '');
+            setAssignedTo(task.assigned_to || null);
         }
     }, [task]);
 
@@ -35,6 +37,7 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
                 description: description || null,
                 priority,
                 due_date: dueDate || null,
+                assigned_to: assignedTo,
             });
             onUpdate(response.data);
             onClose();
@@ -152,6 +155,23 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
                                     onChange={(e) => setDueDate(e.target.value)}
                                     className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl py-2.5 px-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                                 />
+                            </div>
+
+                            {/* Assign To */}
+                            <div>
+                                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    Assign To
+                                </label>
+                                <select
+                                    value={assignedTo || ''}
+                                    onChange={(e) => setAssignedTo(e.target.value ? parseInt(e.target.value) : null)}
+                                    className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl py-2.5 px-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                                >
+                                    <option value="">Unassigned</option>
+                                    {(members || []).map((m) => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
