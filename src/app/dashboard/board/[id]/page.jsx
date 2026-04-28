@@ -8,6 +8,7 @@ import { Plus, ArrowLeft, MoreHorizontal, GripVertical, Calendar, Flag, Loader2,
 import TaskDetailModal from '@/components/TaskDetailModal';
 import BoardSettingsModal from '@/components/BoardSettingsModal';
 import { Settings } from 'lucide-react';
+import echo from '@/lib/echo';
 
 const PRIORITY_CONFIG = {
     high: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'High' },
@@ -48,6 +49,56 @@ export default function BoardPage() {
         };
         fetchBoard();
     }, [id, router]);
+
+    // Real-time listener for task moves
+    useEffect(() => {
+        if (!board || !echo) return;
+
+        const channel = echo.private(`board.${board.id}`);
+        
+        channel.listen('.task.moved', (e) => {
+            setColumns(prevColumns => {
+                // Find the task from previous state
+                let taskToMove = null;
+                for (const col of prevColumns) {
+                    const t = col.tasks.find(t => t.id === e.task_id);
+                    if (t) {
+                        taskToMove = t;
+                        break;
+                    }
+                }
+
+                if (!taskToMove) return prevColumns; // Task not found in current state
+
+                // Create new columns state
+                return prevColumns.map(col => {
+                    // Remove from old column
+                    if (col.id === e.old_column) {
+                        return {
+                            ...col,
+                            tasks: col.tasks.filter(t => t.id !== e.task_id)
+                        };
+                    }
+                    // Add to new column and sort
+                    if (col.id === e.column_id) {
+                        const newTasks = [...col.tasks.filter(t => t.id !== e.task_id), { ...taskToMove, column_id: e.column_id, position: e.position }]
+                            .sort((a, b) => a.position - b.position);
+                        
+                        return {
+                            ...col,
+                            tasks: newTasks
+                        };
+                    }
+                    return col;
+                });
+            });
+        });
+
+        return () => {
+            channel.stopListening('.task.moved');
+            echo.leave(`board.${board.id}`);
+        };
+    }, [board]);
 
     // Drag and Drop handler — saves to API
     const onDragEnd = async (result) => {
