@@ -6,6 +6,8 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import axios from '@/lib/axios';
 import { Plus, ArrowLeft, MoreHorizontal, GripVertical, Calendar, Flag, Loader2, Trash2, Check, Pencil } from 'lucide-react';
 import TaskDetailModal from '@/components/TaskDetailModal';
+import BoardSettingsModal from '@/components/BoardSettingsModal';
+import { Settings } from 'lucide-react';
 
 const PRIORITY_CONFIG = {
     high: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'High' },
@@ -26,6 +28,8 @@ export default function BoardPage() {
     const [editingColName, setEditingColName] = useState('');
     const [addingColumn, setAddingColumn] = useState(false);
     const [newColName, setNewColName] = useState('');
+    const [showSettings, setShowSettings] = useState(false);
+
 
 
     // Fetch real board data from API
@@ -136,6 +140,9 @@ export default function BoardPage() {
             console.error('Failed to delete column', error);
         }
     };
+    const handleBoardUpdate = (updatedBoard) => {
+    setBoard(updatedBoard);
+};
 
 
     if (loading) {
@@ -160,6 +167,13 @@ export default function BoardPage() {
                     <h1 className="text-xl font-bold tracking-tight">{board?.name || 'Board'}</h1>
                     <p className="text-xs text-zinc-500 mt-0.5">{columns.reduce((a, c) => a + c.tasks.length, 0)} tasks across {columns.length} columns</p>
                 </div>
+                <button
+                    onClick={() => setShowSettings(true)}
+                    className="w-9 h-9 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 flex items-center justify-center transition-colors"
+                    title="Board Settings"
+                >
+                    <Settings className="w-4 h-4 text-zinc-400" />
+                </button>
             </div>
 
             {/* Columns Container */}
@@ -327,6 +341,12 @@ export default function BoardPage() {
                 onClose={() => setSelectedTask(null)}
                 onUpdate={handleTaskUpdate}
                 onDelete={handleTaskDelete}
+            />
+            <BoardSettingsModal
+                board={board}
+                isOpen={showSettings}
+                onClose={() => setShowSettings(false)}
+                onUpdate={handleBoardUpdate}
             />
         </div>
     );
