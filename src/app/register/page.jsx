@@ -6,6 +6,7 @@ import { User, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@/store/useAuth';
 import axios from '@/lib/axios';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function RegisterPage() {
     const [name, setName] = useState('');
@@ -14,6 +15,8 @@ export default function RegisterPage() {
     const [passwordConfirmation, setPasswordConfirmation] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const searchParams = useSearchParams();
+    const redirectUrl = searchParams.get('redirect') || '/dashboard';
     
     const { login } = useAuth();
     
@@ -34,7 +37,7 @@ export default function RegisterPage() {
                 password_confirmation: passwordConfirmation 
             });
             login(response.data.token, response.data.user);
-            window.location.href = '/dashboard'; 
+            window.location.href = redirectUrl; 
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to create workspace. Please check your details.');
         } finally {
@@ -147,7 +150,7 @@ export default function RegisterPage() {
 
                     <p className="mt-6 text-center text-zinc-400 text-sm">
                         Already have an account?{' '}
-                        <Link href="/login" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
+                        <Link href={`/login${redirectUrl !== '/dashboard' ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`} className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
                             Sign In
                         </Link>
                     </p>

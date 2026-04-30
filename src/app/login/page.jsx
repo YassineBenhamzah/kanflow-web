@@ -6,12 +6,15 @@ import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@/store/useAuth';
 import axios from '@/lib/axios';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const searchParams = useSearchParams();
+    const redirectUrl = searchParams.get('redirect') || '/dashboard';
     
     // Pulling the login function from our Zustand memory brain!
     const { login } = useAuth();
@@ -25,7 +28,7 @@ export default function LoginPage() {
             // Hit the live Hostinger API securely
             const response = await axios.post('/auth/login', { email, password });
             login(response.data.token, response.data.user);
-            window.location.href = '/dashboard'; // Redirect on success
+            window.location.href = redirectUrl; // Redirect on success
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
         } finally {
