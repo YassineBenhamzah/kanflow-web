@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Flag, Calendar, Trash2, Save, AlignLeft, MessageSquare, Send, Loader2, CheckCircle2, Circle, Trash, ListTodo } from 'lucide-react';
+import { X, Flag, Calendar, Trash2, Save, AlignLeft, MessageSquare, Send, Loader2, CheckCircle2, Circle, Trash, ListTodo, Plus } from 'lucide-react';
 import axios from '@/lib/axios';
 import { useAuth } from '@/store/useAuth';
 
