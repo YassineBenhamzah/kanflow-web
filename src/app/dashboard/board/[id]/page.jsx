@@ -94,8 +94,20 @@ export default function BoardPage() {
             });
         });
 
+        // Listen for new comments
+        channel.listen('.comment.added', (e) => {
+            setSelectedTask(prevTask => {
+                // Only update if the modal is currently open for the task that received the comment
+                if (prevTask && prevTask.id === e.comment.task_id) {
+                    return { ...prevTask, new_comment: e.comment };
+                }
+                return prevTask;
+            });
+        });
+
         return () => {
             channel.stopListening('.task.moved');
+            channel.stopListening('.comment.added');
             echo.leave(`board.${board.id}`);
         };
     }, [board]);
