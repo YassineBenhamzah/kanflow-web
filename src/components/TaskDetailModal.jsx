@@ -261,12 +261,12 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
                                             comments.map((comment) => (
                                                 <div key={comment.id} className={`flex gap-3 ${comment.user_id === user?.id ? 'flex-row-reverse' : ''}`}>
                                                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-lg shadow-indigo-500/20">
-                                                        {comment.user.name.charAt(0).toUpperCase()}
+                                                        {comment.user?.name ? comment.user.name.charAt(0).toUpperCase() : '?'}
                                                     </div>
                                                     <div className={`flex flex-col max-w-[80%] ${comment.user_id === user?.id ? 'items-end' : 'items-start'}`}>
                                                         <div className="flex items-baseline gap-2 mb-1">
                                                             <span className="text-xs font-medium text-zinc-300">
-                                                                {comment.user_id === user?.id ? 'You' : comment.user.name}
+                                                                {comment.user_id === user?.id ? 'You' : (comment.user?.name || 'Unknown')}
                                                             </span>
                                                             <span className="text-[10px] text-zinc-600">
                                                                 {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

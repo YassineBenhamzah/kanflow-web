@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@/store/useAuth';
@@ -8,7 +8,7 @@ import axios from '@/lib/axios';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -125,4 +125,15 @@ export default function LoginPage() {
             </motion.div>
         </div>
     );
+}
+export default function LoginPage() { 
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+            </div>
+        }>
+            <LoginForm />
+        </Suspense>
+    ); 
 }
