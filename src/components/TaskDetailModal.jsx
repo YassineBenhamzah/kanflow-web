@@ -213,7 +213,7 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
                         </div>
 
                         {/* Body */}
-                        <div className="px-6 py-5 space-y-5">
+                        <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
                             {/* Title */}
                             <div>
                                 <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 block">Title</label>
