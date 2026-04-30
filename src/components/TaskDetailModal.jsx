@@ -55,12 +55,16 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
     // Expose comments state to parent so it can inject real-time updates
     useEffect(() => {
         if (task && onUpdate && task.new_comment) {
+            // Save a reference before deleting it
+            const incomingComment = task.new_comment;
+            
             // If parent passes a new comment via task object updates
             // (We will handle this via board page listening)
             setComments(prev => {
-                if (prev.find(c => c.id === task.new_comment.id)) return prev;
-                return [...prev, task.new_comment];
+                if (prev.find(c => c.id === incomingComment.id)) return prev;
+                return [...prev, incomingComment];
             });
+            
             // Clear the trigger
             delete task.new_comment;
         }
