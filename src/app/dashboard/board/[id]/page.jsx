@@ -317,18 +317,28 @@ export default function BoardPage() {
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-sm font-medium text-zinc-200 leading-snug">{task.title}</p>
-                                                                <div className="flex items-center gap-2 mt-2.5">
-                                                                    {task.priority && PRIORITY_CONFIG[task.priority] && (
-                                                                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-md border ${PRIORITY_CONFIG[task.priority].bg} ${PRIORITY_CONFIG[task.priority].color} ${PRIORITY_CONFIG[task.priority].border}`}>
-                                                                            <Flag className="w-2.5 h-2.5" />
-                                                                            {PRIORITY_CONFIG[task.priority].label}
-                                                                        </span>
-                                                                    )}
-                                                                    {task.due_date && (
-                                                                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-500">
-                                                                            <Calendar className="w-2.5 h-2.5" />
-                                                                            {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                                        </span>
+                                                                <div className="flex items-center justify-between mt-2.5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {task.priority && PRIORITY_CONFIG[task.priority] && (
+                                                                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-md border ${PRIORITY_CONFIG[task.priority].bg} ${PRIORITY_CONFIG[task.priority].color} ${PRIORITY_CONFIG[task.priority].border}`}>
+                                                                                <Flag className="w-2.5 h-2.5" />
+                                                                                {PRIORITY_CONFIG[task.priority].label}
+                                                                            </span>
+                                                                        )}
+                                                                        {task.due_date && (
+                                                                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-500">
+                                                                                <Calendar className="w-2.5 h-2.5" />
+                                                                                {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {task.assignee && (
+                                                                        <div 
+                                                                            className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-[9px] font-bold text-white shadow-sm shrink-0"
+                                                                            title={`Assigned to ${task.assignee.name}`}
+                                                                        >
+                                                                            {task.assignee.name.charAt(0).toUpperCase()}
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </div>
