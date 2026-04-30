@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Flag, Calendar, Trash2, Save, AlignLeft, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { X, Flag, Calendar, Trash2, Save, AlignLeft, MessageSquare, Send, Loader2, CheckCircle2, Circle, Trash, ListTodo } from 'lucide-react';
 import axios from '@/lib/axios';
 import { useAuth } from '@/store/useAuth';
 
@@ -20,6 +20,11 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
     const [assignedTo, setAssignedTo] = useState(null);
     const [saving, setSaving] = useState(false);
     
+    // Checklist state
+    const [checklist, setChecklist] = useState([]);
+    const [newItemTitle, setNewItemTitle] = useState('');
+    const [addingItem, setAddingItem] = useState(false);
+    
     // Comments state
     const { user } = useAuth();
     const [comments, setComments] = useState([]);
@@ -35,6 +40,7 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
             setPriority(task.priority || 'medium');
             setDueDate(task.due_date ? task.due_date.split('T')[0] : '');
             setAssignedTo(task.assigned_to || null);
+            setChecklist(task.checklist_items || []);
             
             // Fetch comments
             const fetchComments = async () => {
@@ -97,6 +103,50 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
         }
     };
 
+    // Checklist functions
+    const handleAddChecklistItem = async (e) => {
+        if (e) e.preventDefault();
+        if (!newItemTitle.trim()) return;
+        
+        try {
+            setAddingItem(true);
+            const res = await axios.post(`/tasks/${task.id}/checklist`, { title: newItemTitle });
+            setChecklist(prev => [...prev, res.data]);
+            setNewItemTitle('');
+        } catch (error) {
+            console.error('Failed to add checklist item', error);
+        } finally {
+            setAddingItem(false);
+        }
+    };
+
+    const handleToggleChecklistItem = async (item) => {
+        const originalStatus = item.is_completed;
+        // Optimistic update
+        setChecklist(prev => prev.map(i => i.id === item.id ? { ...i, is_completed: !originalStatus } : i));
+        
+        try {
+            await axios.put(`/checklist/${item.id}`, { is_completed: !originalStatus });
+        } catch (error) {
+            // Revert on failure
+            setChecklist(prev => prev.map(i => i.id === item.id ? { ...i, is_completed: originalStatus } : i));
+            console.error('Failed to toggle checklist item', error);
+        }
+    };
+
+    const handleDeleteChecklistItem = async (id) => {
+        try {
+            await axios.delete(`/checklist/${id}`);
+            setChecklist(prev => prev.filter(i => i.id !== id));
+        } catch (error) {
+            console.error('Failed to delete checklist item', error);
+        }
+    };
+
+    const completedCount = checklist.filter(i => i.is_completed).length;
+    const totalCount = checklist.length;
+    const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -107,7 +157,7 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
                 due_date: dueDate || null,
                 assigned_to: assignedTo,
             });
-            onUpdate(response.data);
+            onUpdate({ ...response.data, checklist_items: checklist });
             onClose();
         } catch (error) {
             console.error('Failed to update task', error);
@@ -187,6 +237,69 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
                                     placeholder="Add a description..."
                                     className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl py-2.5 px-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
                                 />
+                            </div>
+
+                            {/* Checklist Section */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                                        <ListTodo className="w-3.5 h-3.5" /> Checklist
+                                    </label>
+                                    {totalCount > 0 && (
+                                        <span className="text-[10px] font-medium text-zinc-500">
+                                            {completedCount}/{totalCount} ({Math.round(progress)}%)
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                {totalCount > 0 && (
+                                    <div className="w-full bg-zinc-800 h-1 rounded-full mb-4 overflow-hidden">
+                                        <motion.div 
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${progress}%` }}
+                                            className="h-full bg-indigo-500"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="space-y-2 mb-4">
+                                    {checklist.map((item) => (
+                                        <div key={item.id} className="group flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/30 transition-colors">
+                                            <button 
+                                                onClick={() => handleToggleChecklistItem(item)}
+                                                className={`shrink-0 transition-colors ${item.is_completed ? 'text-indigo-500' : 'text-zinc-600 hover:text-zinc-400'}`}
+                                            >
+                                                {item.is_completed ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
+                                            </button>
+                                            <span className={`flex-1 text-sm transition-all ${item.is_completed ? 'text-zinc-500 line-through' : 'text-zinc-200'}`}>
+                                                {item.title}
+                                            </span>
+                                            <button 
+                                                onClick={() => handleDeleteChecklistItem(item.id)}
+                                                className="opacity-0 group-hover:opacity-100 p-1 text-zinc-600 hover:text-red-400 transition-all"
+                                            >
+                                                <Trash className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <form onSubmit={handleAddChecklistItem} className="relative group">
+                                    <input 
+                                        type="text"
+                                        value={newItemTitle}
+                                        onChange={(e) => setNewItemTitle(e.target.value)}
+                                        placeholder="Add a subtask..."
+                                        className="w-full bg-zinc-950/30 border border-zinc-800 rounded-xl py-2 pl-4 pr-10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition-all"
+                                    />
+                                    <button 
+                                        type="submit"
+                                        disabled={addingItem || !newItemTitle.trim()}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-500 hover:text-indigo-400 disabled:opacity-0 transition-all"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </form>
                             </div>
 
                             {/* Priority */}
