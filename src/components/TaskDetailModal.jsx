@@ -376,34 +376,28 @@ export default function TaskDetailModal({ task, isOpen, onClose, onUpdate, onDel
                                             </div>
                                         ) : (
                                             comments.map((comment) => (
-                                                <div key={comment.id} className={`flex gap-3 ${comment.user_id === user?.id ? 'flex-row-reverse' : ''}`}>
-                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-lg shadow-indigo-500/20">
+                                                <div key={comment.id} className="flex gap-3 group">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm ${comment.user_id === user?.id ? 'bg-gradient-to-tr from-indigo-500 to-purple-500' : 'bg-gradient-to-tr from-zinc-600 to-zinc-500'}`}>
                                                         {comment.user?.name ? comment.user.name.charAt(0).toUpperCase() : '?'}
                                                     </div>
-                                                    <div className={`flex flex-col max-w-[80%] ${comment.user_id === user?.id ? 'items-end' : 'items-start'}`}>
+                                                    <div className="flex-1 min-w-0">
                                                         <div className="flex items-baseline gap-2 mb-1">
-                                                            <span className="text-xs font-medium text-zinc-300">
+                                                            <span className={`text-xs font-semibold ${comment.user_id === user?.id ? 'text-indigo-400' : 'text-zinc-300'}`}>
                                                                 {comment.user_id === user?.id ? 'You' : (comment.user?.name || 'Unknown')}
                                                             </span>
                                                             <span className="text-[10px] text-zinc-600">
-                                                                {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                {new Date(comment.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                             </span>
+                                                            {comment.user_id === user?.id && (
+                                                                <button 
+                                                                    onClick={() => handleDeleteComment(comment.id)}
+                                                                    className="text-[10px] text-zinc-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all ml-auto"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            )}
                                                         </div>
-                                                        <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                                                            comment.user_id === user?.id 
-                                                                ? 'bg-indigo-500 text-white rounded-tr-sm shadow-md shadow-indigo-500/10' 
-                                                                : 'bg-zinc-800 text-zinc-200 rounded-tl-sm'
-                                                        }`}>
-                                                            {comment.body}
-                                                        </div>
-                                                        {comment.user_id === user?.id && (
-                                                            <button 
-                                                                onClick={() => handleDeleteComment(comment.id)}
-                                                                className="text-[10px] text-zinc-600 hover:text-red-400 mt-1 mr-1 transition-colors"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        )}
+                                                        <p className="text-sm text-zinc-200 leading-relaxed">{comment.body}</p>
                                                     </div>
                                                 </div>
                                             ))
