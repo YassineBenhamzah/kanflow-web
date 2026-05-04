@@ -114,13 +114,13 @@ function InviteContent() {
                                 <p className="text-sm text-zinc-500 mb-6">You need to log in or create an account to join.</p>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button 
-                                        onClick={() => router.push(`/login?redirect=/invite?token=${token}`)}
+                                        onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/invite?token=${token}`)}`)}
                                         className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 rounded-xl transition-colors"
                                     >
                                         Log In
                                     </button>
                                     <button 
-                                        onClick={() => router.push(`/register?redirect=/invite?token=${token}`)}
+                                        onClick={() => router.push(`/register?redirect=${encodeURIComponent(`/invite?token=${token}`)}`)}
                                         className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 text-white font-medium py-3 rounded-xl shadow-lg shadow-indigo-500/25 transition-all"
                                     >
                                         Register
