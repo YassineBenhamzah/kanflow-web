@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import axios from '@/lib/axios';
-import { Plus, ArrowLeft, MoreHorizontal, GripVertical, Calendar, Flag, Loader2, Trash2, Check, Pencil } from 'lucide-react';
+import { Plus, ArrowLeft, MoreHorizontal, GripVertical, Calendar, Flag, Loader2, Trash2, Check, Pencil, Users } from 'lucide-react';
 import TaskDetailModal from '@/components/TaskDetailModal';
 import BoardSettingsModal from '@/components/BoardSettingsModal';
 import { Settings } from 'lucide-react';
@@ -30,6 +30,7 @@ export default function BoardPage() {
     const [addingColumn, setAddingColumn] = useState(false);
     const [newColName, setNewColName] = useState('');
     const [showSettings, setShowSettings] = useState(false);
+    const [onlineUsers, setOnlineUsers] = useState([]);
 
 
 
@@ -50,65 +51,80 @@ export default function BoardPage() {
         fetchBoard();
     }, [id, router]);
 
-    // Real-time listener for task moves
+    // Real-time listeners for all board events
     useEffect(() => {
         if (!board || !echo) return;
 
         const channel = echo.private(`board.${board.id}`);
-        
+
+        // Task moved
         channel.listen('.task.moved', (e) => {
             setColumns(prevColumns => {
-                // Find the task from previous state
                 let taskToMove = null;
                 for (const col of prevColumns) {
                     const t = col.tasks.find(t => t.id === e.task_id);
-                    if (t) {
-                        taskToMove = t;
-                        break;
-                    }
+                    if (t) { taskToMove = t; break; }
                 }
-
-                if (!taskToMove) return prevColumns; // Task not found in current state
-
-                // Create new columns state
+                if (!taskToMove) return prevColumns;
                 return prevColumns.map(col => {
-                    // Remove from old column
-                    if (col.id === e.old_column) {
-                        return {
-                            ...col,
-                            tasks: col.tasks.filter(t => t.id !== e.task_id)
-                        };
-                    }
-                    // Add to new column and sort
+                    if (col.id === e.old_column) return { ...col, tasks: col.tasks.filter(t => t.id !== e.task_id) };
                     if (col.id === e.column_id) {
-                        const newTasks = [...col.tasks.filter(t => t.id !== e.task_id), { ...taskToMove, column_id: e.column_id, position: e.position }]
-                            .sort((a, b) => a.position - b.position);
-                        
-                        return {
-                            ...col,
-                            tasks: newTasks
-                        };
+                        const newTasks = [...col.tasks.filter(t => t.id !== e.task_id), { ...taskToMove, column_id: e.column_id, position: e.position }].sort((a, b) => a.position - b.position);
+                        return { ...col, tasks: newTasks };
                     }
                     return col;
                 });
             });
         });
 
-        // Listen for new comments
+        // Task created by another user
+        channel.listen('.task.created', (e) => {
+            setColumns(prev => prev.map(col => {
+                if (col.id === e.column_id) return { ...col, tasks: [...col.tasks, e.task].sort((a, b) => a.position - b.position) };
+                return col;
+            }));
+        });
+
+        // Task updated by another user
+        channel.listen('.task.updated', (e) => {
+            setColumns(prev => prev.map(col => ({
+                ...col,
+                tasks: col.tasks.map(t => t.id === e.task.id ? { ...t, ...e.task } : t)
+            })));
+            setSelectedTask(prev => prev && prev.id === e.task.id ? { ...prev, ...e.task } : prev);
+        });
+
+        // Task deleted by another user
+        channel.listen('.task.deleted', (e) => {
+            setColumns(prev => prev.map(col => ({
+                ...col,
+                tasks: col.tasks.filter(t => t.id !== e.task_id)
+            })));
+            setSelectedTask(prev => prev && prev.id === e.task_id ? null : prev);
+        });
+
+        // Comment added
         channel.listen('.comment.added', (e) => {
             setSelectedTask(prevTask => {
-                // Only update if the modal is currently open for the task that received the comment
-                if (prevTask && prevTask.id === e.comment.task_id) {
-                    return { ...prevTask, new_comment: e.comment };
-                }
+                if (prevTask && prevTask.id === e.comment.task_id) return { ...prevTask, new_comment: e.comment };
                 return prevTask;
             });
         });
 
+        // Presence channel — track who's online
+        const presenceChannel = echo.join(`presence-board.${board.id}`);
+        presenceChannel.here((users) => setOnlineUsers(users));
+        presenceChannel.joining((user) => setOnlineUsers(prev => [...prev.filter(u => u.id !== user.id), user]));
+        presenceChannel.leaving((user) => setOnlineUsers(prev => prev.filter(u => u.id !== user.id)));
+
         return () => {
             channel.stopListening('.task.moved');
+            channel.stopListening('.task.created');
+            channel.stopListening('.task.updated');
+            channel.stopListening('.task.deleted');
             channel.stopListening('.comment.added');
             echo.leave(`board.${board.id}`);
+            echo.leave(`presence-board.${board.id}`);
         };
     }, [board]);
 
@@ -226,10 +242,36 @@ export default function BoardPage() {
                 >
                     <ArrowLeft className="w-4 h-4 text-zinc-400" />
                 </button>
-                <div>
+                <div className="flex-1">
                     <h1 className="text-xl font-bold tracking-tight">{board?.name || 'Board'}</h1>
                     <p className="text-xs text-zinc-500 mt-0.5">{columns.reduce((a, c) => a + c.tasks.length, 0)} tasks across {columns.length} columns</p>
                 </div>
+
+                {/* Online Users */}
+                {onlineUsers.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                        <div className="flex -space-x-2">
+                            {onlineUsers.slice(0, 5).map((user, i) => (
+                                <div
+                                    key={user.id}
+                                    className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[11px] font-bold text-white ring-2 ring-zinc-950 relative"
+                                    title={`${user.name} (online)`}
+                                    style={{ zIndex: 5 - i }}
+                                >
+                                    {user.name?.charAt(0).toUpperCase()}
+                                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full ring-2 ring-zinc-950" />
+                                </div>
+                            ))}
+                            {onlineUsers.length > 5 && (
+                                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-medium text-zinc-400 ring-2 ring-zinc-950">
+                                    +{onlineUsers.length - 5}
+                                </div>
+                            )}
+                        </div>
+                        <span className="text-[10px] text-zinc-600 ml-1">{onlineUsers.length} online</span>
+                    </div>
+                )}
+
                 <button
                     onClick={() => setShowSettings(true)}
                     className="w-9 h-9 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 flex items-center justify-center transition-colors"
